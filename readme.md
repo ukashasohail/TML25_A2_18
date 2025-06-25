@@ -1,6 +1,3 @@
-## Model Stealing Attack - Assignment 2
-
-
 # Model Stealing in Self-Supervised Learning (TML Assignment 2)
 
 This project investigates **model stealing attacks** on a self-supervised image encoder protected by the **Bucks-for-Buckets (B4B)** defense. The attacker (us) is given:
@@ -132,6 +129,54 @@ Both approaches used:
 
 ---
 
+### Code Docs
+
+```convert_to_rgb```
+Ensures every PIL image is 3-channel before passing it to ToTensor()
+
+```get_train_transform/get_eval_transform```
+Classic SimCLR-style augmentations: random crop, flip, jitter, grayscale.
+
+
+```ContrastiveStealingDataset```
+Generates two augmented “views” of the same image plus the target representation obtained from the stolen model.
+
+```StolenEncoder```
+StolenEncoder is a ResNet-18 model. After the four residual stages and a global-average pool, each picture is represented by a 512-dimensional vector. That vector is fed into a projection head with batch-norm and ReLU—that reshapes the space specifically for contrastive learning.
+
+```ContStealNTXent```
+The loss pulls each student view closer to the other and to the teacher; everything else in the batch acts as negative examples.
+
+```load_and_combine_batches```
+Reads each representations_XXXX.pkl file that you saved previously by querying the remote API.
+
+For every 1000-image slice, it concatenates images, labels and teacher embeddings into a cumulative dataset so the student model can eventually see the full surrogate set without exploding RAM.
+
+```train() - Training Loop```
+
+For every batch:
+
+- Generate z1, z2.
+
+- Feed to criterion with corresponding teacher reps.
+
+- Back-prop, Adam step.
+
+- Logs batch-wise loss via tqdm; returns a list of epoch averages and saves a checkpoint to models/stolen_encoder.pth.
+
+```__main__```
+
+- Print out some info logs
+
+- Load surrogate dataset (torch.load() of a pickled TaskDataset).
+
+- Build cumulative training set via load_and_combine_batches.
+
+- Instantiate StolenEncoder, loss, Adam optimiser.
+
+- Train, plot loss, run t-SNE.
+
+All artefacts (model, loss_curve.png, Stolen_Model_Embeddings_t-SNE.png) land in the working directory for later inspection.
 
 
 
